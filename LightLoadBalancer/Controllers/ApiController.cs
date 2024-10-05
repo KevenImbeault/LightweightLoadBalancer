@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 using System.Transactions;
 using System;
+using Tomlyn.Model;
 
 namespace LightLoadBalancer.Controllers;
 
@@ -11,7 +12,9 @@ namespace LightLoadBalancer.Controllers;
 public class ApiController : ControllerBase
 {
     private readonly IHttpClientFactory _httpClientFactory;
-    private static int[] connectionCount = { 0,0,0,0 };
+    private static int[] connectionCounts = { 0,0,0,0 };
+    private static TomlArray serverIps = (TomlArray)((TomlTable)TomlConfiguration.Model["servers"]!)["ips"];
+    private static TomlArray serverPorts = (TomlArray)((TomlTable)TomlConfiguration.Model["servers"]!)["ports"];
     
     public ApiController(IHttpClientFactory httpClientFactory) =>
         _httpClientFactory = httpClientFactory;
@@ -20,29 +23,39 @@ public class ApiController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<string>> GetAsync()
     {
+        var chosenServer = 0;
+
+        for (var i = 1; i < connectionCounts.Length; i++)
+        {
+            if (connectionCounts[i] < connectionCounts[chosenServer])
+            {
+                chosenServer = i;
+            }
+        }
+        
         try
         {
-            connectionCount[0]++;
-            var httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, "http://localhost:80/");
+            connectionCounts[chosenServer]++;
+            var httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, $"http://{serverIps[chosenServer]}:{serverPorts[chosenServer]}/");
 
             var httpClient = _httpClientFactory.CreateClient();
             var httpResponseMessage = await httpClient.SendAsync(httpRequestMessage);
 
             if (httpResponseMessage.IsSuccessStatusCode)
             {
-                connectionCount[0]--;
+                connectionCounts[chosenServer]--;
                 return httpResponseMessage.Content.ReadAsStringAsync().Result;
             }
             else
             {
-                connectionCount[0]--;
+                connectionCounts[chosenServer]--;
                 var errorResponse = $"Request failed with status code: {httpResponseMessage.StatusCode}";
                 return StatusCode((int)httpResponseMessage.StatusCode, errorResponse);
             }
         }
         catch (HttpRequestException exception)
         {
-            connectionCount[0]--;
+            connectionCounts[chosenServer]--;
             return StatusCode((int)HttpStatusCode.InternalServerError, exception.Message);
         }
     }
