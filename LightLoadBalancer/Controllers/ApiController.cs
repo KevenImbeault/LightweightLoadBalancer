@@ -12,9 +12,10 @@ namespace LightLoadBalancer.Controllers;
 public class ApiController : ControllerBase
 {
     private readonly IHttpClientFactory _httpClientFactory;
-    private static int[] connectionCounts = { 0,0,0,0 };
     private static TomlArray serverIps = (TomlArray)((TomlTable)TomlConfiguration.Model["servers"]!)["ips"];
     private static TomlArray serverPorts = (TomlArray)((TomlTable)TomlConfiguration.Model["servers"]!)["ports"];
+    
+    private static int[] connectionCounts = new int[serverIps.Count];
     
     public ApiController(IHttpClientFactory httpClientFactory) =>
         _httpClientFactory = httpClientFactory;
