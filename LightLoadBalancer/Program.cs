@@ -32,13 +32,8 @@ app.Run();
 
 public class TomlConfiguration
 {
-    private static string toml = @"
-        [servers]
-        ips = [""localhost"", ""localhost"", ""localhost"", ""localhost""]
-        ports = [80, 81, 82, 83]
-        ";
-
-    // Converts the TOML string to a `TomlTable`
-    public static readonly TomlTable Model = Toml.ToModel(toml);
+    private static string tomlFile = File.ReadAllText("configuration.toml");
     
+    // Converts the TOML string to a `TomlTable`
+    public static readonly TomlTable Model = Toml.ToModel(tomlFile);
 }

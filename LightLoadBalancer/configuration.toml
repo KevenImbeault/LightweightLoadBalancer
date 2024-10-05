@@ -1,0 +1,3 @@
+﻿[servers]
+ips = ["localhost", "localhost", "localhost", "localhost"]
+ports = [80, 81, 82, 83]
