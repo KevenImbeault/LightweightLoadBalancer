@@ -18,27 +18,64 @@ public class ApiController : ControllerBase
     
     public ApiController(IHttpClientFactory httpClientFactory) =>
         _httpClientFactory = httpClientFactory;
+
+    private async Task<int> GetLeastConnectionServer()
+    {
+        return await Task.Run(() =>
+        {
+            var chosenServer = 0;
+
+            for (var i = 1; i < connectionCounts.Length; i++)
+            {
+                if (connectionCounts[i] == -1)
+                {
+                    continue;
+                }
+                
+                if (connectionCounts[i] < connectionCounts[chosenServer] || connectionCounts[chosenServer] == -1)
+                {
+                    chosenServer = i;
+                }
+            }
+            
+            return chosenServer;
+        });
+    }
     
     //Get /
     [HttpGet]
     public async Task<ActionResult<string>> GetAsync()
     {
-        var chosenServer = 0;
+        var httpClient = _httpClientFactory.CreateClient();
 
-        for (var i = 1; i < connectionCounts.Length; i++)
+        var chosenServer = await GetLeastConnectionServer();
+        var serverAlive = false;
+
+        do
         {
-            if (connectionCounts[i] < connectionCounts[chosenServer])
+            try
             {
-                chosenServer = i;
+                var aliveRequestMessage = new HttpRequestMessage(HttpMethod.Get,
+                    $"http://{serverIps[chosenServer]}:{serverPorts[chosenServer]}/alive");
+                var aliveResponseMessage = await httpClient.SendAsync(aliveRequestMessage);
+
+                if (aliveResponseMessage.IsSuccessStatusCode)
+                {
+                    serverAlive = true;
+                }
             }
-        }
+            catch (HttpRequestException exception)
+            {
+                connectionCounts[chosenServer] = -1;
+                chosenServer = await GetLeastConnectionServer();
+            }
+        } while (!serverAlive);
         
         try
         {
             connectionCounts[chosenServer]++;
+            
             var httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, $"http://{serverIps[chosenServer]}:{serverPorts[chosenServer]}/");
-
-            var httpClient = _httpClientFactory.CreateClient();
             var httpResponseMessage = await httpClient.SendAsync(httpRequestMessage);
 
             if (httpResponseMessage.IsSuccessStatusCode)
@@ -46,12 +83,10 @@ public class ApiController : ControllerBase
                 connectionCounts[chosenServer]--;
                 return httpResponseMessage.Content.ReadAsStringAsync().Result;
             }
-            else
-            {
-                connectionCounts[chosenServer]--;
-                var errorResponse = $"Request failed with status code: {httpResponseMessage.StatusCode}";
-                return StatusCode((int)httpResponseMessage.StatusCode, errorResponse);
-            }
+
+            connectionCounts[chosenServer]--;
+            var errorResponse = $"Request failed with status code: {httpResponseMessage.StatusCode}";
+            return StatusCode((int)httpResponseMessage.StatusCode, errorResponse);
         }
         catch (HttpRequestException exception)
         {
