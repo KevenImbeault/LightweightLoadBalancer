@@ -1,7 +1,6 @@
 ﻿# Lightweight load balancer
 ## By Keven Imbeault
 
----
 _French will follow_  
 
 **Language used** : C#  
@@ -20,8 +19,9 @@ ports = [80, 81, 82, 83]
 
 **_ips_** : Contains the ips of the 1 - 10 servers used as API servers to load balance.  
 **_ports_** : Contains the ports to access each server defined previously.
+
 ---
-Required endpoints  
+#### Required endpoints  
 
 `http:[ip]:[port]/`  
 Return code : 200 OK  
@@ -60,8 +60,6 @@ When a server is lost, around 60 requests fails.
 # Load balancer léger
 ## Par Keven Imbeault
 
----
-
 **Language utilisé** : C#  
 **Paquet NuGet utilisé** : Tomly
 
@@ -78,6 +76,7 @@ ports = [80, 81, 82, 83]
 
 **_ips_** : Contient les addresses ips des 1 à 10 serveurs requis pour l'utilisation de l'API.  
 **_ports_** : Contient les ports associés aux serveurs défini précédemment.
+
 ---
 #### Endpoints requis
 
